@@ -12,7 +12,7 @@
 
 @interface ViewController ()<UITableViewDataSource, UITableViewDelegate,MBProgressHUDDelegate>
 {
-    NSArray *dataSource;
+    NSMutableArray *dataSource;
     NSArray *detailDataSource;
     MBProgressHUD  *progressHUD;
 }
@@ -32,7 +32,7 @@
     [super viewDidLoad];
     // Do any additional setup after loading the view, typically from a nib.
     self.title=@"Yawooo";
-    dataSource = [NSArray arrayWithObjects:@"Message1", @"Message2", @"Message3", @"Message4", @"Message5", @"Message6", @"Message7", @"Message8", nil];
+    dataSource = [NSMutableArray  arrayWithCapacity:0];
     
     detailDataSource = [NSArray arrayWithObjects:@"Abstract1", @"Abstract2", @"Abstract3", @"Abstract4", @"Abstract5", @"Abstract6", @"Abstract7", @"Abstract8", nil];
     [self getRemoteURL];
@@ -104,7 +104,7 @@
     
     
     
-    cell.textLabel.text = dataSource[indexPath.row];
+    cell.textLabel.text = dataSource[indexPath.row][@"current_time"];
     cell.detailTextLabel.text = detailDataSource[indexPath.row];
     
     
@@ -115,6 +115,7 @@
 - (void)getRemoteURL
 {
     [self initalizeMBProgressHUD:@"loading..."];
+    
     // Prepare the HTTP Client
     AFHTTPClient *httpClient =
     [[AFHTTPClient alloc] initWithBaseURL:[NSURL URLWithString:@"http://106.187.98.65/"]];
@@ -133,6 +134,49 @@
         [progressHUD hide:YES];
         
         NSString *tmp = [[NSString alloc] initWithData:responseObject encoding:NSUTF8StringEncoding];
+        NSLog(@"Response: %@",tmp);
+        
+        NSData *rawData = [tmp dataUsingEncoding:NSUTF8StringEncoding];
+        NSError *e;
+        NSDictionary *dict= [NSJSONSerialization JSONObjectWithData:rawData options:NSJSONReadingMutableContainers error:&e]; // option:base on JASON format to determine what kind of format need to use
+        
+        NSString *RC =[NSString stringWithFormat:@"%@",[dict objectForKey:@"RC"]];
+        NSString *RM= [NSString stringWithFormat:@"%@",[dict objectForKey:@"RM"]];
+        
+        
+        NSArray * listData=[dict objectForKey:@"result"];
+        
+        NSLog(@"RC:%@",RC);
+        NSLog(@"RM:%@",RM);
+        NSLog(@"Result :%@",listData);
+        
+        NSInteger arrayLength =[listData count];
+        NSLog(@"count is %lu",(unsigned long)[listData count]);
+        
+        if (arrayLength >0){
+            [dataSource removeAllObjects];
+            for(int i=0 ; i <arrayLength; i++){
+                NSDictionary *innerDict=listData[i];
+                [dataSource addObject:[NSDictionary dictionaryWithObjectsAndKeys:
+                                       [innerDict objectForKey:@"announcement_version"],@"announcement_version",
+                                       [innerDict objectForKey:@"deliver_time"],@"deliver_time",
+                                       [innerDict objectForKey:@"waiting_time"],@"waiting_time",
+                                       [innerDict objectForKey:@"current_time" ],@"current_time", nil]];
+                
+                NSLog(@"dataSource %@",dataSource);
+                
+            }
+        }
+        
+        NSLog(@"Array Length:%ld",(long)arrayLength);
+        [self.tableView reloadData];
+
+        
+        UIAlertView *alert = [[UIAlertView alloc]initWithTitle:@"提醒" message:@"完成" delegate:self cancelButtonTitle:@"關閉" otherButtonTitles:nil];
+        [alert show];
+        
+
+        
         
         // Test Log
         NSLog(@"Response: %@", tmp);
