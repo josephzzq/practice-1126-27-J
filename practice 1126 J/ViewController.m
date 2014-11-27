@@ -10,16 +10,23 @@
 #import "AFNetworking.h"
 #import "MBProgressHUD.h"
 
-@interface ViewController ()<UITableViewDataSource, UITableViewDelegate,MBProgressHUDDelegate>
+@interface ViewController ()<UITableViewDataSource, UITableViewDelegate,MBProgressHUDDelegate,UITextFieldDelegate>
 {
     NSMutableArray *dataSource;
     NSArray *detailDataSource;
     MBProgressHUD  *progressHUD;
+    NSTimer *_timer;
+    double timerNumber;
+
 }
 
 
 
 @property (weak, nonatomic) IBOutlet UITableView *tableView;
+@property (weak, nonatomic) IBOutlet UILabel *timeLabel;
+@property (weak, nonatomic) IBOutlet UIButton *startTimer;
+@property (weak, nonatomic) IBOutlet UIButton *pauseTimer;
+@property (weak, nonatomic) IBOutlet UITextField *textField;
 
 @end
 
@@ -28,21 +35,148 @@
 
 @implementation ViewController
 
+
 - (void)viewDidLoad {
     [super viewDidLoad];
     // Do any additional setup after loading the view, typically from a nib.
+    
     self.title=@"Yawooo";
+    
+    
     dataSource = [NSMutableArray  arrayWithCapacity:0];
     
     detailDataSource = [NSArray arrayWithObjects:@"Abstract1", @"Abstract2", @"Abstract3", @"Abstract4", @"Abstract5", @"Abstract6", @"Abstract7", @"Abstract8", nil];
+    
+    
+    // UIButton layout
+    [self.startTimer.layer setCornerRadius:10.0f];
+    [self.startTimer.layer setBorderColor:[[UIColor brownColor]CGColor] ];
+    [self.startTimer.layer setBorderWidth:3.0f];
+    
+    [self.pauseTimer.layer setCornerRadius:10.0f];
+    [self.pauseTimer.layer setBorderColor:[[UIColor redColor] CGColor]];
+    [self.pauseTimer.layer setBorderWidth:4.0f];
+    
+    
+    
+    
+    // add more button in navigation item
+    UIButton *a1 = [UIButton buttonWithType:UIButtonTypeCustom];
+    [a1 setFrame:CGRectMake(0.0f, 0.0f, 46.0f, 29.0f)];
+    [a1 addTarget:self action:@selector(enterEditMode:) forControlEvents:(UIControlEventTouchUpInside)];
+    [a1 setTitle:@"編輯" forState:(UIControlStateNormal)];
+    [a1.titleLabel setFont:[UIFont systemFontOfSize:15.0f]];
+    [a1 setTitleColor:[UIColor purpleColor] forState:(UIControlStateNormal)];
+    a1.titleLabel.textColor =[UIColor blackColor];
+    UIBarButtonItem *right1Button = [[UIBarButtonItem alloc] initWithCustomView:a1];
+    
+    
+    
+    UIButton *a2 = [UIButton buttonWithType:UIButtonTypeCustom];
+    [a2 setFrame:CGRectMake(0.0f, 0.0f, 46.0f, 29.0f)];
+    [a2 addTarget:self action:@selector(leaveEditMode:) forControlEvents:(UIControlEventTouchUpInside)];
+    [a2 setTitle:@"結束" forState:(UIControlStateNormal)];
+    [a2.titleLabel setFont:[UIFont systemFontOfSize:15.0f]];
+    [a2 setTitleColor:[UIColor purpleColor] forState:(UIControlStateNormal)];
+    a2.titleLabel.textColor =[UIColor blackColor];
+    UIBarButtonItem *right2Button = [[UIBarButtonItem alloc] initWithCustomView:a2];
+    
+    self.navigationItem.rightBarButtonItems =@[right1Button,right2Button];
+    
+    
+    
+    
+    [self.textField becomeFirstResponder];
     [self getRemoteURL];
+
     
 }
+
+
 
 - (void)didReceiveMemoryWarning {
     [super didReceiveMemoryWarning];
     // Dispose of any resources that can be recreated.
 }
+
+
+
+
+#pragma mark - Bar Button items press action
+
+
+-(void)enterEditMode:(id)sender{
+    NSLog(@"enterEditMode");
+}
+
+-(void)leaveEditMode:(id)sender{
+    NSLog(@"leaveEditMode");
+}
+
+
+
+#pragma mark - timer setup
+
+
+-(void)timerEvent:(NSTimer*)timer{
+    UIAlertView *alert =[[UIAlertView alloc]initWithTitle:@"提醒" message:@"已登出" delegate:self cancelButtonTitle:@"確認" otherButtonTitles: nil];
+    [alert show];
+    
+}
+
+
+- (IBAction)startTimer:(id)sender {
+
+    double interval= 3.0f;
+    _timer =[NSTimer scheduledTimerWithTimeInterval:interval target:self selector:@selector(timerEvent:) userInfo:nil repeats:true];
+    
+    }
+
+
+- (IBAction)stopTimer:(id)sender {
+
+    [_timer invalidate];
+    
+    UIAlertView *alert =[[UIAlertView alloc]initWithTitle:@"提醒" message:@"已停止" delegate:self cancelButtonTitle:@"確認" otherButtonTitles: nil];
+    [alert show];
+
+}
+
+
+
+
+#pragma mark - replace empty space string in textField
+
+
+- (IBAction)complete:(id)sender {
+    
+    
+    NSString *final =[self.textField.text stringByReplacingOccurrencesOfString:@" " withString:@""];
+
+    NSLog(@"Enter:%@" ,final);
+    //NSLog(@"Enter:%@" ,self.textField.text);
+    [self.textField resignFirstResponder];
+}
+
+
+
+
+
+#pragma mark - UITextFieldDelegate
+
+-(BOOL) textFieldShouldBeginEditing:(UITextField *)textField{
+    NSLog(@"textFieldShouldBeginEditing");
+    return YES;
+}
+
+- (BOOL)textFieldShouldEndEditing:(UITextField *)textField{
+    NSLog(@"textFieldShouldEndEditing");
+
+    return YES;
+}
+
+
+
 
 
 #pragma mark - initalizeMBProgressHUD
@@ -68,6 +202,7 @@
 }
 
 
+
 #pragma mark - Table view data source
 
 
@@ -88,6 +223,7 @@
 
 
 
+
 - (UITableViewCell *)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath {
     
     
@@ -101,6 +237,7 @@
         NSLog(@"I have been initialize. Row = %li", (long)indexPath.row);
     }
     
+    NSLog(@"A Dictionary: %@", dataSource[indexPath.row]);
     
     
     
@@ -108,8 +245,38 @@
     cell.detailTextLabel.text = detailDataSource[indexPath.row];
     
     
+    // add button via coding
+    UIButton *button = [[UIButton alloc]initWithFrame:CGRectMake(230, 30, 80, 40)];
+    [button setTitle:@"Open Web" forState:UIControlStateNormal];
+    button.titleLabel.font = [UIFont fontWithName: @"AvenirNextCondensed-Bold" size: 12.0];
+    [button setBackgroundColor:[UIColor brownColor]];
+    button.tag = indexPath.row;
+    
+    
+    // add button action
+    [button addTarget:self action:@selector(openWeb:) forControlEvents:UIControlEventTouchUpInside];
+    [cell.contentView addSubview:button];
+    
+    [button.layer setCornerRadius:10.0f];
+    [button.layer setBorderColor:[[UIColor whiteColor] CGColor]];
+    [button.layer setBorderWidth:2.0f];
+    
+    
+    
     return cell;
 }
+
+
+// openWeb via input textFied text (URL scheme)
+-(void)openWeb:(id)sender{
+    NSString *url = [NSString stringWithFormat:@"http://%@", self.textField.text];
+    [[UIApplication sharedApplication] openURL:[NSURL URLWithString:url]];
+}
+
+
+
+
+#pragma mark - AFNetworking getRemoteURL
 
 
 - (void)getRemoteURL
